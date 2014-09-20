@@ -1,0 +1,107 @@
+---
+title: "Classification of Exercise Manner in Weight Lifting Exercise Dataset"
+author: "Vinh N. Pham"
+output: html_document
+---
+# Abstract
+   The Weight Lifting Exercise dataset consists of information taken from enthusiasts
+   who wear biometric devices while doing various exercises.  The goal of this project
+   is to learn to classify various manner in which the exercises are done from these
+   labeled data.
+   
+# Preprocessing
+```{r set_global_options, cache=TRUE}
+```
+```{r, results='hide'}
+tc.all <- read.csv("pml-training.csv", head=TRUE)
+tc.predict <- read.csv("pml-testing.csv", head=TRUE)
+```
+
+   The dataset contain 160 fields.  Most of them contains valid information in the
+   training dataset.  However, in the final validation data, 100 of these 160 fields
+   contain all NA.  This gives the clue that these are not important and should be
+   taken out of the model.  In addition, 3 other fields should be removed:
+   
+   - the testcase number: leaving this in would make the model worse because the
+                           numbering is entirely different in the 2 datasets
+                           
+   - the "cvtd_timestamp" field: probably duplicate data with 2 other time fields
+   
+   - the "new_window" field: the predict dataset contain only value "no"
+   
+```{r, results='hide'}
+tc.all <- tc.all[,colSums(is.na(tc.predict))<nrow(tc.predict)]
+tc.predict <- tc.predict[,colSums(is.na(tc.predict))<nrow(tc.predict)]
+tc.all  <- tc.all[,-c(1,5,6)]
+tc.predict <- tc.predict[,-c(1,5,6)]
+```
+   We divide the training set to 3 set for training, testing, and validation.
+```{r, results='hide'}
+suppressPackageStartupMessages(library(caret))
+set.seed(12345)
+index.train <- createDataPartition(y=tc.all$classe, p=0.6, list=FALSE)
+tc.train <- tc.all[index.train,]
+tc.test.validate <- tc.all[-index.train,]
+index.test <- createDataPartition(y=tc.test.validate$classe, p=0.5, list=FALSE)
+tc.test <- tc.test.validate[index.test,]
+tc.validate <- tc.test.validate[-index.test,]
+```
+# Model Building
+   We train 2 types of models: gradient boosting and random forest models and compare
+   them for best result.  To reduce the time training the model, we also use
+   parallelization (using 6 cores out of 8 core machine).
+   
+```{r, results='hide'}
+suppressPackageStartupMessages(library(doParallel))
+cl <- makeCluster(6)
+registerDoParallel(cl)
+
+trControl = trainControl(method="cv", number=10)
+
+suppressMessages(st.gbm <- system.time(model.gbm <- train(classe ~ ., method="gbm",
+                                        verbose=FALSE,
+                                        data=tc.train, trControl=trControl)))
+suppressMessages(st.rf <- system.time(model.rf <- train(classe ~ ., method="rf", 
+                                       prox=FALSE, verbose=FALSE,
+                                       data=tc.train, trControl=trControl)))
+
+stopCluster(cl)
+```
+# Model Selection
+```{r}
+cm.gbm <- confusionMatrix(tc.test$classe, predict(model.gbm, tc.test))
+cm.rf <- confusionMatrix(tc.test$classe, predict(model.rf, tc.test))
+```
+Time for training boosting model
+```{r}
+st.gbm
+```
+Time for training random forest model
+```{r}
+st.rf
+```
+
+```{r}
+cat(sprintf("Boosting model accuracy = %f, Random forest model accuracy = %f",
+            cm.gbm$overall[1], cm.rf$overall[1]))
+```
+As a result, we choose the random forest model as the final model of this project
+despite the fact that it takes longer to train.
+
+# Out of sample error
+```{r}
+(cm.validate.rf <- confusionMatrix(tc.validate$classe, predict(model.rf, tc.validate)))
+```
+So the accuracy of out-of sample error is `r cm.validate.rf$overall[1]`
+
+# Prediction
+Prediction of the 20 reserved testcases
+```{r}
+predict(model.rf, tc.predict)
+```
+Apparently, this result is 20/20 correct when submitted to the assigment system.
+
+# Conclusion
+This project builds two models: gradient boosting and random forest models.  Even though
+the result accuracies are close, we choose the model with better accuracy: the random
+forest model.  The out of sample accuracy is `r cm.validate.rf$overall[1]`
