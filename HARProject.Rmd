@@ -42,9 +42,9 @@ set.seed(12345)
 index.train <- createDataPartition(y=tc.all$classe, p=0.6, list=FALSE)
 tc.train <- tc.all[index.train,]
 tc.test.validate <- tc.all[-index.train,]
-index.test <- createDataPartition(y=tc.test.validate$classe, p=0.5, list=FALSE)
-tc.test <- tc.test.validate[index.test,]
-tc.validate <- tc.test.validate[-index.test,]
+index.validate <- createDataPartition(y=tc.test.validate$classe, p=0.5, list=FALSE)
+tc.validate <- tc.test.validate[index.validate,]
+tc.test <- tc.test.validate[-index.validate,]
 ```
 # Model Building
    We train 2 types of models: gradient boosting and random forest models and compare
@@ -68,9 +68,12 @@ suppressMessages(st.rf <- system.time(model.rf <- train(classe ~ ., method="rf",
 stopCluster(cl)
 ```
 # Model Selection
+Cross validation is already done when building the two models but another layer
+of validation is done to choose the best of the 2 best models built in
+the last step.
 ```{r}
-cm.gbm <- confusionMatrix(tc.test$classe, predict(model.gbm, tc.test))
-cm.rf <- confusionMatrix(tc.test$classe, predict(model.rf, tc.test))
+cm.gbm <- confusionMatrix(tc.validate$classe, predict(model.gbm, tc.validate))
+cm.rf <- confusionMatrix(tc.validate$classe, predict(model.rf, tc.validate))
 ```
 Time for training boosting model
 ```{r}
@@ -90,7 +93,7 @@ despite the fact that it takes longer to train.
 
 # Out of sample error
 ```{r}
-(cm.validate.rf <- confusionMatrix(tc.validate$classe, predict(model.rf, tc.validate)))
+(cm.validate.rf <- confusionMatrix(tc.test$classe, predict(model.rf, tc.test)))
 ```
 So the accuracy of out-of sample error is `r cm.validate.rf$overall[1]`
 

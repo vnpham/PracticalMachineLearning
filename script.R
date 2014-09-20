@@ -12,11 +12,11 @@ tc.predict <- tc.predict[,-c(1,5,6)]
 index.train <- createDataPartition(y=tc.all$classe, p=0.6, list=FALSE)
 tc.train <- tc.all[index.train,]
 tc.test.validate <- tc.all[-index.train,]
-index.test <- createDataPartition(y=tc.test.validate$classe, p=0.5, list=FALSE)
-tc.test <- tc.test.validate[index.test,]
-tc.validate <- tc.test.validate[-index.test,]
+index.validate <- createDataPartition(y=tc.test.validate$classe, p=0.5, list=FALSE)
+tc.validate <- tc.test.validate[index.validate,]
+tc.test <- tc.test.validate[-index.validate,]
 
-# rm(tc.all, tc.test.validate, index.train, index.test)
+# rm(tc.all, tc.test.validate, index.train, index.validate)
 
 library(doParallel)
 cl <- makeCluster(6)
@@ -33,10 +33,10 @@ st.rf <- system.time(model.rf <- train(classe ~ ., method="rf", prox=FALSE,
 
 stopCluster(cl)
 
-cm.gbm <- confusionMatrix(tc.test$classe, predict(model.gbm, tc.test))
-cm.rf <- confusionMatrix(tc.test$classe, predict(model.rf, tc.test))
+cm.gbm <- confusionMatrix(tc.validate$classe, predict(model.gbm, tc.validate))
+cm.rf <- confusionMatrix(tc.validate$classe, predict(model.rf, tc.validate))
 
-(cm.validate.rf <- confusionMatrix(tc.validate$classe, predict(model.rf, tc.validate)))
+(cm.validate.rf <- confusionMatrix(tc.test$classe, predict(model.rf, tc.test)))
 
 #------------------------------------------------
 pml_write_files = function(x){
