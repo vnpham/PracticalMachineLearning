@@ -81,9 +81,9 @@ set.seed(12345)
 index.train &lt;- createDataPartition(y=tc.all$classe, p=0.6, list=FALSE)
 tc.train &lt;- tc.all[index.train,]
 tc.test.validate &lt;- tc.all[-index.train,]
-index.test &lt;- createDataPartition(y=tc.test.validate$classe, p=0.5, list=FALSE)
-tc.test &lt;- tc.test.validate[index.test,]
-tc.validate &lt;- tc.test.validate[-index.test,]</code></pre>
+index.validate &lt;- createDataPartition(y=tc.test.validate$classe, p=0.5, list=FALSE)
+tc.validate &lt;- tc.test.validate[index.validate,]
+tc.test &lt;- tc.test.validate[-index.validate,]</code></pre>
 </div>
 <div id="model-building" class="section level1">
 <h1>Model Building</h1>
@@ -105,16 +105,17 @@ stopCluster(cl)</code></pre>
 </div>
 <div id="model-selection" class="section level1">
 <h1>Model Selection</h1>
-<pre class="r"><code>cm.gbm &lt;- confusionMatrix(tc.test$classe, predict(model.gbm, tc.test))
-cm.rf &lt;- confusionMatrix(tc.test$classe, predict(model.rf, tc.test))</code></pre>
+<p>Cross validation is already done when building the two models but another layer of validation is done to choose the best of the 2 best models built in the last step.</p>
+<pre class="r"><code>cm.gbm &lt;- confusionMatrix(tc.validate$classe, predict(model.gbm, tc.validate))
+cm.rf &lt;- confusionMatrix(tc.validate$classe, predict(model.rf, tc.validate))</code></pre>
 <p>Time for training boosting model</p>
 <pre class="r"><code>st.gbm</code></pre>
 <pre><code>##    user  system elapsed 
-##   23.36    0.06  155.97</code></pre>
+##   25.11    0.14  161.02</code></pre>
 <p>Time for training random forest model</p>
 <pre class="r"><code>st.rf</code></pre>
 <pre><code>##    user  system elapsed 
-##   34.53    0.12  346.10</code></pre>
+##   35.64    0.16  360.21</code></pre>
 <pre class="r"><code>cat(sprintf(&quot;Boosting model accuracy = %f, Random forest model accuracy = %f&quot;,
             cm.gbm$overall[1], cm.rf$overall[1]))</code></pre>
 <pre><code>## Boosting model accuracy = 0.996431, Random forest model accuracy = 0.999235</code></pre>
@@ -122,7 +123,7 @@ cm.rf &lt;- confusionMatrix(tc.test$classe, predict(model.rf, tc.test))</code></
 </div>
 <div id="out-of-sample-error" class="section level1">
 <h1>Out of sample error</h1>
-<pre class="r"><code>(cm.validate.rf &lt;- confusionMatrix(tc.validate$classe, predict(model.rf, tc.validate)))</code></pre>
+<pre class="r"><code>(cm.validate.rf &lt;- confusionMatrix(tc.test$classe, predict(model.rf, tc.test)))</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference
